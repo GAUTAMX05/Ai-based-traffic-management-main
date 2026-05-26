@@ -1,10 +1,17 @@
+import os
 import cv2 as cv
 import time
-from collections import deque
 import numpy as np
 from scipy.signal import find_peaks
 
-def detect_cars(video_file):
+def detect_cars(video_file, progress_callback=None):
+    # Resolve YOLO model/labels relative to this file so multiprocessing workers
+    # (which may have a different working directory) can still load them.
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    classes_path = os.path.join(base_dir, "classes.txt")
+    cfg_path = os.path.join(base_dir, "yolov4-tiny.cfg")
+    weights_path = os.path.join(base_dir, "yolov4-tiny.weights")
+
     # Set thresholds
     Conf_threshold = 0.4
     NMS_threshold = 0.4
@@ -15,11 +22,11 @@ def detect_cars(video_file):
 
     # Load class names from file
     class_name = []
-    with open('classes.txt', 'r') as f:
+    with open(classes_path, 'r') as f:
         class_name = [cname.strip() for cname in f.readlines()]
 
     # Load the network
-    net = cv.dnn.readNet('yolov4-tiny.weights', 'yolov4-tiny.cfg')
+    net = cv.dnn.readNet(weights_path, cfg_path)
 
     # Set preferable backend and target (use CPU for compatibility)
     net.setPreferableBackend(cv.dnn.DNN_BACKEND_DEFAULT)
@@ -43,8 +50,9 @@ def detect_cars(video_file):
         gui_available = False
         print("GUI not available, running in headless mode")
 
-    # To keep track of car counts and timestamps
-    car_counts = deque()  # Store (timestamp, car_count) tuples
+    # To keep track of car counts per frame
+    car_counts = []  # Store individual frame car counts
+    max_cars_detected = 0
 
     while True:
         ret, frame = cap.read()
@@ -56,36 +64,30 @@ def detect_cars(video_file):
         # Perform detection
         classes, scores, boxes = model.detect(frame, Conf_threshold, NMS_threshold)
 
-        # Count the number of cars detected
-        car_count = 0
+        # Count the number of cars detected in this frame
+        frame_car_count = 0
         for (classid, score, box) in zip(classes, scores, boxes):
             if class_name[classid] == "car":  # assuming 'car' is the class name for cars in your classes.txt
-                car_count += 1
+                frame_car_count += 1
                 color = COLORS[int(classid) % len(COLORS)]
                 label = f"{class_name[classid]} : {score:.2f}"
                 cv.rectangle(frame, box, color, 2)
                 cv.putText(frame, label, (box[0], box[1]-10), 
                            cv.FONT_HERSHEY_COMPLEX, 0.5, color, 2)
 
-        # Record the car count with the current timestamp
-        current_time = time.time()
-        car_counts.append((current_time, car_count))
-        
-        # Remove counts that are older than 30 seconds
-        while car_counts and car_counts[0][0] < current_time - 30:
-            car_counts.popleft()
+        car_counts.append(frame_car_count)
+        max_cars_detected = max(max_cars_detected, frame_car_count)
 
-        # Extract the car counts from the deque
-        car_count_values = [count for _, count in car_counts]
+        # Send live progress updates every few frames
+        if progress_callback and frame_counter % 5 == 0:
+            try:
+                progress_callback(max_cars_detected)
+            except Exception as e:
+                print("Progress callback error:", e)
 
-        # Find peaks in the car count values
-        peaks, _ = find_peaks(car_count_values)
-
-        # Calculate the mean of the peak values
-        if len(peaks) > 0:
-            mean_peak_value = np.mean([car_count_values[i] for i in peaks])
-        else:
-            mean_peak_value = 0
+        # Calculate average car count in recent frames for statistics
+        recent_frames = car_counts[-30:] if len(car_counts) > 30 else car_counts
+        avg_car_count = np.mean(recent_frames) if recent_frames else 0
 
         # Calculate and display FPS
         ending_time = time.time()
@@ -93,8 +95,8 @@ def detect_cars(video_file):
         cv.putText(frame, f'FPS: {fps:.2f}', (20, 50), 
                    cv.FONT_HERSHEY_COMPLEX, 0.7, (0, 255, 0), 2)
         
-        # Display the mean peak value on the frame
-        cv.putText(frame, f'Mean Peak Cars : {mean_peak_value:.2f}', (20, 80), 
+        # Display the maximum car count detected on the frame
+        cv.putText(frame, f'Max Cars Detected : {max_cars_detected} | Avg : {avg_car_count:.1f}', (20, 80), 
                    cv.FONT_HERSHEY_COMPLEX, 0.7, (0, 255, 255), 2)
 
         # Display the frame if GUI is available
@@ -109,8 +111,8 @@ def detect_cars(video_file):
     if gui_available:
         cv.destroyAllWindows()
 
-    # Return the mean of the peak values
-    return mean_peak_value
+    # Return the maximum number of cars detected in any single frame
+    return int(max_cars_detected)
 
 # Usage example:
 #mean_peak_value = detect_cars('output.avi')
