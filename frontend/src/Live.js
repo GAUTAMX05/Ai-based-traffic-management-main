@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import ProcessingCard from './components/ProcessingCard';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://ai-based-traffic-management-main.onrender.com';
+
 function Live() {
   const [liveState, setLiveState] = useState({
     status: 'waiting',
@@ -69,7 +71,7 @@ function Live() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/status');
+        const response = await axios.get(`${BACKEND_URL}/status`);
         setLiveState(response.data);
       } catch (error) {
         console.error('Error fetching live status:', error);
@@ -168,7 +170,7 @@ function Live() {
 
                 <div className="dir-preview">
                   <video className="dir-video" autoPlay muted playsInline>
-                    <source src={`http://localhost:5000/videos/video_${idx}.mp4`} type="video/mp4" />
+<source src={`${BACKEND_URL}/videos/video_${idx}.mp4`} type="video/mp4" />
                   </video>
                 </div>
 

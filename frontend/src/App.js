@@ -4,6 +4,8 @@ import axios from 'axios';
 import './styles.css';
 import Live from './Live';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://ai-based-traffic-management-main.onrender.com';
+
 function Home() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [result, setResult] = useState(null);
@@ -50,7 +52,7 @@ function Home() {
     try {
       setLoading(true);
       setResult(null);
-      const response = await axios.post('http://localhost:5000/upload', formData, {
+      const response = await axios.post(`${BACKEND_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const data = response.data;
