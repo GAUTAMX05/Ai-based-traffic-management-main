@@ -132,6 +132,18 @@ def upload_files():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({
+        'service': 'AI Traffic Management backend',
+        'status': 'running',
+        'endpoints': ['POST /upload', 'GET /status', 'GET /health', 'GET /videos/<filename>'],
+    })
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'}), 200
+
 @app.route('/status', methods=['GET'])
 def status():
     return jsonify(processing_status)
