@@ -2,7 +2,6 @@ import os
 import cv2 as cv
 import time
 import numpy as np
-from scipy.signal import find_peaks
 
 def detect_cars(video_file, progress_callback=None):
     # Resolve YOLO model/labels relative to this file so multiprocessing workers

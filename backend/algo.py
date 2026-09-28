@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 def fitness_function(C, g, x, c):
     # Prevent division by zero and negative values
