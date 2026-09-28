@@ -1,6 +1,13 @@
-flask
-flask-cors
-opencv-python
-numpy
-scipy
-matplotlib
+# Render-ready requirements for AI Traffic Management backend (Flask + YOLOv4-tiny + OpenCV)
+# Fixes for Render:
+# 1. opencv-python -> opencv-python-headless (no libGL dependency, required on Render)
+# 2. All versions pinned for reproducible Render builds
+# 3. Added gunicorn (production WSGI server, handles $PORT)
+# Set PYTHON_VERSION=3.11.9 in Render dashboard
+Flask==3.1.0
+flask-cors==5.0.0
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+scipy==1.13.1
+matplotlib==3.9.2
+gunicorn==23.0.0
